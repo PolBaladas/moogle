@@ -1,5 +1,6 @@
 import pickle
-
+import requests
+from bs4 import BeautifulSoup
 
 
 #############################################################################
@@ -28,19 +29,19 @@ def store(db, filename):
         print("done")
 
 
+def getSoup(url):
+    response = requests.get(url).text # Returns HTML (text) of the given URL.
+    soup = BeautifulSoup(response) # Creates 'soup' object from response (HTML). 'soup' is a python object that contains all the content and information/metadata of the website.
+    return soup
+
 def crawler(url, maxdist):
     """
         Crawls the web starting from url,
         following up to maxdist links
         and returns the built database.
     """
-    pages = [
-        {
-            'title':'polbaladas',
-            'url':'https://polbaladas.com',
-            'score':4269
-        }
-    ]
+    pages = {}
+    pages[url] = getSoup(url)
     return pages
 
 
@@ -73,7 +74,15 @@ def answer(db, query):
         The query is a string of cleaned words.
     """
 
-    ### Please implement this function
-    
-    return db
+    pages = []
+
+    for url in db:
+        soup = db[url] # Accedeixo al valor del diccionari que pertany a la clau url
+        pages.append({ # Fem un append d'un diccionari a la llista pages
+            'url': url,  # URL : URL
+            'title': soup.title.string, 
+            'score':100
+        })
+
+    return pages
 
