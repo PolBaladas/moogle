@@ -32,12 +32,16 @@ def crawler(url, maxdist):
     """
         Crawls the web starting from url,
         following up to maxdist links
-        and returns the buit database.
+        and returns the built database.
     """
-
-    ### Please implement this function
-
-    return None
+    pages = [
+        {
+            'title':'polbaladas',
+            'url':'https://polbaladas.com',
+            'score':4269
+        }
+    ]
+    return pages
 
 
 
@@ -56,6 +60,7 @@ def load(filename):
 
 
 def answer(db, query):
+
     """
         Returns a list of pages for the given query.
 
@@ -69,6 +74,6 @@ def answer(db, query):
     """
 
     ### Please implement this function
-
-    return []
+    
+    return db
 
