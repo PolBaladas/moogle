@@ -12,7 +12,7 @@ def authors():
 
     ### Please modify this function
 
-    return "Oriol Domingo, Pol Baladas, Zucki"
+    return "Oriol Domingo, Pol Baladas"
 
 
 
