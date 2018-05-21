@@ -1,8 +1,10 @@
 import pickle
 import requests
+import sys
+from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 
-
+sys.setrecursionlimit(50000)
 #############################################################################
 # Common part
 #############################################################################
@@ -21,7 +23,6 @@ def authors():
 # Crawler
 #############################################################################
 
-
 def store(db, filename):
     with open(filename, "wb") as f:
         print("store", filename)
@@ -34,6 +35,20 @@ def getSoup(url):
     soup = BeautifulSoup(response) # Creates 'soup' object from response (HTML). 'soup' is a python object that contains all the content and information/metadata of the website.
     return soup
 
+def getLinks(soup):
+    links = []
+    for link in soup.find_all('a'):
+        href = link.get("href")
+        if href != None and 'mailto:' not in href:
+            links.append(href)
+    return links
+
+
+def sanitizeUrl(parent_url, url):
+    if "http" not in url:
+        url = urljoin(parent_url, url)
+    return url
+
 def crawler(url, maxdist):
     """
         Crawls the web starting from url,
@@ -41,9 +56,21 @@ def crawler(url, maxdist):
         and returns the built database.
     """
     pages = {}
-    pages[url] = getSoup(url)
+    recursive_crawler(url, maxdist, pages)
     return pages
+    
+visited = []
+def recursive_crawler(url, maxdist, pages):
+    if maxdist > 0 and url not in visited:
+        visited.append(url)
+        soup = getSoup(url)
+        pages[url] = soup
+        links = getLinks(soup)
+        for link in links:
+            print(link)
+            recursive_crawler(sanitizeUrl(url, link), maxdist - 1, pages)
 
+   
 
 
 #############################################################################
@@ -75,7 +102,6 @@ def answer(db, query):
     """
 
     pages = []
-
     for url in db:
         soup = db[url] # Accedeixo al valor del diccionari que pertany a la clau url
         pages.append({ # Fem un append d'un diccionari a la llista pages
