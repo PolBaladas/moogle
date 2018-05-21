@@ -61,7 +61,7 @@ def crawler(url, maxdist):
     
 visited = []
 def recursive_crawler(url, maxdist, pages):
-    if maxdist > 0 and url not in visited:
+    if maxdist >= 0 and url not in visited:
         visited.append(url)
         soup = getSoup(url)
         pages[url] = soup
@@ -102,13 +102,15 @@ def answer(db, query):
     """
 
     pages = []
+    i = 0
     for url in db:
         soup = db[url] # Accedeixo al valor del diccionari que pertany a la clau url
         pages.append({ # Fem un append d'un diccionari a la llista pages
             'url': url,  # URL : URL
             'title': soup.title.string, 
-            'score':100
+            'score': 100 - i
         })
+        i+=1
 
     return pages
 
