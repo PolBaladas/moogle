@@ -31,7 +31,7 @@ def store(db, filename):
 
 
 def getSoup(url):
-    response = requests.get(url).text # Returns HTML (text) of the given URL.
+    response = requests.get(url, verify = False).text # Returns HTML (text) of the given URL.
     soup = BeautifulSoup(response) # Creates 'soup' object from response (HTML). 'soup' is a python object that contains all the content and information/metadata of the website.
     return soup
 
@@ -59,16 +59,15 @@ def crawler(url, maxdist):
     recursive_crawler(url, maxdist, pages)
     return pages
     
-visited = []
 def recursive_crawler(url, maxdist, pages):
-    if maxdist >= 0 and url not in visited:
-        visited.append(url)
+    if url not in pages:
         soup = getSoup(url)
         pages[url] = soup
+    if maxdist > 0 :
         links = getLinks(soup)
         for link in links:
-            print(link)
-            recursive_crawler(sanitizeUrl(url, link), maxdist - 1, pages)
+            link = sanitizeUrl(url, link)
+            recursive_crawler(link, maxdist - 1, pages)
 
    
 
@@ -102,6 +101,7 @@ def answer(db, query):
     """
 
     pages = []
+    print(len(db))
     i = 0
     for url in db:
         soup = db[url] # Accedeixo al valor del diccionari que pertany a la clau url
