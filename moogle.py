@@ -62,15 +62,15 @@ def sanitizeText(text):
         if word in NOISE:
             text.remove(word)
 
-def scrapeSite(soup, db):
+def scrapeSite(soup, url, db):
     words = db["words"]
     text = getText(soup)
     sanitizeText(text)
     for word in text:
         if word not in words:
-            words[word] = [word]
+            words[word] = [url]
         else:
-            words[word].append(word)
+            words[word].append(url)
 
 
 def sanitizeUrl(parent_url, url):
@@ -96,18 +96,18 @@ def getLinks(soup):
     return links
 
 
-def recursive_crawler(url, maxdist, db):
+def recursive_crawler(url, expdist, db):
     pages = db["pages"]
     if url not in pages:
         soup = getSoup(url)
         pages[url] = soup
-        scrapeSite(soup, db)
-    if maxdist > 0:
-        links = getLinks(soup)
-        for link in links:
-            print(link)
-            link = sanitizeUrl(url, link)
-            recursive_crawler(link, maxdist - 1, db)
+        scrapeSite(soup, url, db)
+        if expdist > 0:
+            links = getLinks(soup)
+            for link in links:
+                print(link)
+                link = sanitizeUrl(url, link)
+                recursive_crawler(link, expdist - 1, db)
 
 
 def crawler(url, maxdist):
@@ -153,18 +153,19 @@ def answer(db, query):
 
     words = db["words"]
     pages = db["pages"]
-    results = words[query]
+    print(words)
+    query_results = words[query]
 
+    web_results = []
     i = 0
-    for url in results:
+    for url in query_results:
         # Accedeixo al valor del diccionari que pertany a la clau url
-        page = pages[url]
-        soup = page.soup
-        pages.append({  # Fem un append d'un diccionari a la llista pages
+        soup = pages[url]
+        web_results.append({  # Fem un append d'un diccionari a la llista pages
             'url': url,  # URL : URL
             'title': soup.title.string,
             'score': 100 - i
         })
         i += 1
 
-    return pages
+    return web_results
