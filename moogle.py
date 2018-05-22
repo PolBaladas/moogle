@@ -1,10 +1,13 @@
 import pickle
 import requests
+import urllib3
 import sys
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 
 sys.setrecursionlimit(50000)
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 #############################################################################
 # Common part
 #############################################################################
@@ -55,9 +58,12 @@ def crawler(url, maxdist):
         following up to maxdist links
         and returns the built database.
     """
-    pages = {}
-    recursive_crawler(url, maxdist, pages)
-    return pages
+    db = {
+        "pages": {},
+        "words": {}
+    }
+    recursive_crawler(url, maxdist, db["pages"])
+    return db["pages"]
     
 def recursive_crawler(url, maxdist, pages):
     if url not in pages:
