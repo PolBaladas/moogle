@@ -4,9 +4,16 @@ import urllib3
 import sys
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
+from bs4.element import Comment
+
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 sys.setrecursionlimit(50000)
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+f = open("noise.txt")
+NOISE = f.read().split(',')
 
 #############################################################################
 # Common part
@@ -16,10 +23,9 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 def authors():
     """Returns a string with the name of the authors of the work."""
 
-    ### Please modify this function
+    # Please modify this function
 
     return "Oriol Domingo, Pol Baladas"
-
 
 
 #############################################################################
@@ -33,10 +39,53 @@ def store(db, filename):
         print("done")
 
 
+
+def is_visible(element):
+    if element.parent.name in ['style', 'script', 'head', 'title', 'meta', '[document]']:
+        return False
+    if isinstance(element, Comment):
+        return False
+    return True
+
+
+def filterVisibleText(text)
+    visible = filter(is_visible, text)
+    return u" ".join(t.strip() for t in visible)
+
+
+def getText(soup)
+    text = soup.findAll(text=True)
+    return filterVisibleText(text).split(' ')
+
+def sanitizeText():
+    for word in text:
+        if word in NOISE:
+            text.remove(word)
+
+def scrapeSite(soup, db):
+    words = db["words"]
+    text = getText(soup)
+    sanitizeText(text)
+    for word in text:
+        if word not in words:
+            words[word] = [word]
+        else:
+            words[word].append(word)
+
+
+def sanitizeUrl(parent_url, url):
+    if "http" not in url:
+        url = urljoin(parent_url, url)
+    return url
+
+
 def getSoup(url):
-    response = requests.get(url, verify = False).text # Returns HTML (text) of the given URL.
-    soup = BeautifulSoup(response) # Creates 'soup' object from response (HTML). 'soup' is a python object that contains all the content and information/metadata of the website.
+    # Returns HTML (text) of the given URL.
+    response = requests.get(url, verify=False).text
+    # Creates 'soup' object from response (HTML). 'soup' is a python object that contains all the content and information/metadata of the website.
+    soup = BeautifulSoup(response)
     return soup
+
 
 def getLinks(soup):
     links = []
@@ -47,10 +96,19 @@ def getLinks(soup):
     return links
 
 
-def sanitizeUrl(parent_url, url):
-    if "http" not in url:
-        url = urljoin(parent_url, url)
-    return url
+def recursive_crawler(url, maxdist, db):
+    pages = db["pages"]
+    if url not in pages:
+        soup = getSoup(url)
+        pages[url] = soup
+        scrapeSite(soup, db)
+    if maxdist > 0:
+        links = getLinks(soup)
+        for link in links:
+            print(link)
+            link = sanitizeUrl(url, link)
+            recursive_crawler(link, maxdist - 1, db)
+
 
 def crawler(url, maxdist):
     """
@@ -62,20 +120,8 @@ def crawler(url, maxdist):
         "pages": {},
         "words": {}
     }
-    recursive_crawler(url, maxdist, db["pages"])
+    recursive_crawler(url, maxdist, db)
     return db["pages"]
-    
-def recursive_crawler(url, maxdist, pages):
-    if url not in pages:
-        soup = getSoup(url)
-        pages[url] = soup
-    if maxdist > 0 :
-        links = getLinks(soup)
-        for link in links:
-            link = sanitizeUrl(url, link)
-            recursive_crawler(link, maxdist - 1, pages)
-
-   
 
 
 #############################################################################
@@ -93,7 +139,6 @@ def load(filename):
 
 
 def answer(db, query):
-
     """
         Returns a list of pages for the given query.
 
@@ -110,13 +155,13 @@ def answer(db, query):
     print(len(db))
     i = 0
     for url in db:
-        soup = db[url] # Accedeixo al valor del diccionari que pertany a la clau url
-        pages.append({ # Fem un append d'un diccionari a la llista pages
+        # Accedeixo al valor del diccionari que pertany a la clau url
+        soup = db[url]
+        pages.append({  # Fem un append d'un diccionari a la llista pages
             'url': url,  # URL : URL
-            'title': soup.title.string, 
+            'title': soup.title.string,
             'score': 100 - i
         })
-        i+=1
+        i += 1
 
     return pages
-
