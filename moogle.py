@@ -121,7 +121,7 @@ def crawler(url, maxdist):
         "words": {}
     }
     recursive_crawler(url, maxdist, db)
-    return db["pages"]
+    return db
 
 
 #############################################################################
