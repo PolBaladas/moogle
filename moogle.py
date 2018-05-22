@@ -61,16 +61,17 @@ def sanitizeText(text):
     for word in text:
         if word in NOISE:
             text.remove(word)
+    return text
 
 def scrapeSite(soup, url, db):
-    words = db["words"]
+    words = db["words"]   
     text = getText(soup)
-    sanitizeText(text)
+    text = sanitizeText(text)
     for word in text:
         if word not in words:
-            words[word] = [url]
+            words[word] = set([url]) 
         else:
-            words[word].append(url)
+            words[word].add(url)
 
 
 def sanitizeUrl(parent_url, url):
