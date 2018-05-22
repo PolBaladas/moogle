@@ -151,12 +151,15 @@ def answer(db, query):
         The query is a string of cleaned words.
     """
 
-    pages = []
-    print(len(db))
+    words = db["words"]
+    pages = db["pages"]
+    results = words[query]
+
     i = 0
-    for url in db:
+    for url in results:
         # Accedeixo al valor del diccionari que pertany a la clau url
-        soup = db[url]
+        page = pages[url]
+        soup = page.soup
         pages.append({  # Fem un append d'un diccionari a la llista pages
             'url': url,  # URL : URL
             'title': soup.title.string,
