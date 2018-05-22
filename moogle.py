@@ -48,16 +48,16 @@ def is_visible(element):
     return True
 
 
-def filterVisibleText(text)
+def filterVisibleText(text):
     visible = filter(is_visible, text)
     return u" ".join(t.strip() for t in visible)
 
 
-def getText(soup)
+def getText(soup):
     text = soup.findAll(text=True)
     return filterVisibleText(text).split(' ')
 
-def sanitizeText():
+def sanitizeText(text):
     for word in text:
         if word in NOISE:
             text.remove(word)
