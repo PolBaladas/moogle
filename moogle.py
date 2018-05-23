@@ -63,15 +63,22 @@ def sanitizeText(text):
             text.remove(word)
     return text
 
+
 def scrapeSite(soup, url, db):
-    words = db["words"]   
-    text = getText(soup)
-    text = sanitizeText(text)
+    words = db["words"]
+    text = soup.findAll(text=True)
+    visible = filter(is_visible, text)
+    text = u" ".join(t.strip() for t in visible)
+    text = text.split()
     for word in text:
-        if word not in words:
-            words[word] = set([url]) 
+        if word in NOISE:
+            text.remove(word)
+        elif word not in words:
+            words[word] = set([url])
         else:
             words[word].add(url)
+
+    db["words"] = words
 
 
 def sanitizeUrl(parent_url, url):
@@ -155,7 +162,7 @@ def answer(db, query):
     words = db["words"]
     pages = db["pages"]
     print(words)
-    query_results = words[query]
+    query_results = list(words[query])
 
     web_results = []
     i = 0
