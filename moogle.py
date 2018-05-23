@@ -13,7 +13,7 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 sys.setrecursionlimit(50000)
 
 f = open("noise.txt")
-NOISE = f.read().split(',')
+NOISE = list(f.read().split(','))
 
 #############################################################################
 # Common part
@@ -39,7 +39,6 @@ def store(db, filename):
         print("done")
 
 
-
 def is_visible(element):
     if element.parent.name in ['style', 'script', 'head', 'title', 'meta', '[document]']:
         return False
@@ -55,28 +54,27 @@ def filterVisibleText(text):
 
 def getText(soup):
     text = soup.findAll(text=True)
-    return filterVisibleText(text).split(' ')
+    return list(filterVisibleText(text).split(' '))
+
 
 def sanitizeText(text):
-    for word in text:
-        if word in NOISE:
-            text.remove(word)
-    return text
+    return [word for word in text if word not in NOISE and word != '']
+
 
 
 def scrapeSite(soup, url, db):
     words = db["words"]
+
     text = soup.findAll(text=True)
     visible = filter(is_visible, text)
     text = u" ".join(t.strip() for t in visible)
     text = text.split()
     for word in text:
-        if word in NOISE:
-            text.remove(word)
-        elif word not in words:
-            words[word] = set([url])
-        else:
-            words[word].add(url)
+        if word not in NOISE:
+            if word not in words:
+                words[word] = set([url])
+            else:
+                words[word].add(url)
 
     db["words"] = words
 
