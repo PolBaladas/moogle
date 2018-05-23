@@ -54,9 +54,9 @@ def filterVisibleText(text):
 
 def getText(soup):
     text = soup.findAll(text=True)
-    return list(filterVisibleText(text).split(' '))
+    return filterVisibleText(text).split(' ')
 
-
+#DO we really need?
 def sanitizeText(text):
     return [word for word in text if word not in NOISE and word != '']
 
@@ -64,11 +64,7 @@ def sanitizeText(text):
 
 def scrapeSite(soup, url, db):
     words = db["words"]
-
-    text = soup.findAll(text=True)
-    visible = filter(is_visible, text)
-    text = u" ".join(t.strip() for t in visible)
-    text = text.split()
+    text = getText(soup)
     for word in text:
         if word not in NOISE:
             if word not in words:
@@ -112,8 +108,8 @@ def recursive_crawler(url, expdist, db):
             links = getLinks(soup)
             for link in links:
                 print(link)
-                link = sanitizeUrl(url, link)
-                recursive_crawler(link, expdist - 1, db)
+                link = sanitizeUrl(url,link)
+                recursive_crawler(link,expdist - 1, db)
 
 
 def crawler(url, maxdist):
