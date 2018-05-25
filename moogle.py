@@ -116,17 +116,16 @@ def getLinks(soup):
 
 def recursive_crawler(url, expdist, db):
     pages = db["pages"]
-    if url not in pages:
-        soup = getSoup(url)
-        pages[url] = soup
-        scrapeSite(soup, url, db)
-        if expdist > 0:
-            links = getLinks(soup)
-            for link in links:
-                print(link)
-                link = sanitizeUrl(url,link)
-                recursive_crawler(link,expdist - 1, db)
-
+    if expdist > 0:
+        if url not in pages:
+            soup = getSoup(url)
+            pages[url] = soup
+            scrapeSite(soup, url, db)
+        links = getLinks(pages[url])
+        for link in links:
+            print(link)
+            link = sanitizeUrl(url,link)
+            recursive_crawler(link,expdist - 1, db)
 
 def crawler(url, maxdist):
     """
