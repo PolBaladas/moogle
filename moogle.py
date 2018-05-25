@@ -2,9 +2,14 @@ import pickle
 import requests
 import urllib3
 import sys
+import util
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 from bs4.element import Comment
+
+from stop_words import get_stop_words
+from langdetect import detect
+from langdetect import detect_langs
 
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
@@ -39,6 +44,21 @@ def store(db, filename):
         print("done")
 
 
+
+def sanitizeText(text):
+    # Sanitize Text
+    text = util.clean_words(text)
+    try:
+        lang = detect(text)
+    except:
+        lang = 'en'
+        
+    stop_words = get_stop_words(lang)
+    text = text.split(' ')
+    return [word for word in text if word not in stop_words]
+    # Sanitize Text
+
+
 def is_visible(element):
     if element.parent.name in ['style', 'script', 'head', 'title', 'meta', '[document]']:
         return False
@@ -53,12 +73,9 @@ def filterVisibleText(text):
 
 
 def getText(soup):
-    text = soup.findAll(text=True)
-    return filterVisibleText(text).split(' ')
-
-#DO we really need?
-def sanitizeText(text):
-    return [word for word in text if word not in NOISE and word != '']
+    text = filterVisibleText(soup.findAll(text=True)) 
+    text = sanitizeText(text)
+    return set(text)
 
 
 
@@ -66,11 +83,10 @@ def scrapeSite(soup, url, db):
     words = db["words"]
     text = getText(soup)
     for word in text:
-        if word not in NOISE:
-            if word not in words:
-                words[word] = set([url])
-            else:
-                words[word].add(url)
+        if word not in words:
+            words[word] = set([url])
+        else:
+            words[word].add(url)
 
     db["words"] = words
 
