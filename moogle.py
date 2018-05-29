@@ -48,13 +48,13 @@ def sanitizeText(text):
     text = util.clean_words(text)
     try:
         lang = detect(text)
+        stop_words = get_stop_words(lang)
     except:
         lang = 'en'
+        stop_words = get_stop_words('en')
 
-    stop_words = get_stop_words(lang)
     text = text.split(' ')
     return [word for word in text if word not in stop_words]
-    # Sanitize Text
 
 
 def is_visible(element):
@@ -104,7 +104,7 @@ def sanitizeUrl(parent_url, url):
 def getSoup(url):
     # Returns HTML (text) of the given URL.
     try:
-        response = requests.get(url, verify=False)
+        response = requests.get(url, verify=False, timeout=3)
         response_status = response.status_code == 200
         response_type = response.headers.get('content-type')
         good_response = response.status_code and 'html' in response_type
