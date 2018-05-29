@@ -6,7 +6,8 @@ import util
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 from bs4.element import Comment
-from networkx import graph
+from networkx import Graph
+from networkx import pagerank
 
 from stop_words import get_stop_words
 from langdetect import detect
@@ -17,9 +18,6 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 sys.setrecursionlimit(50000)
-
-f = open("noise.txt")
-NOISE = list(f.read().split(','))
 
 #############################################################################
 # Common part
@@ -45,7 +43,6 @@ def store(db, filename):
         print("done")
 
 
-
 def sanitizeText(text):
     # Sanitize Text
     text = util.clean_words(text)
@@ -53,7 +50,7 @@ def sanitizeText(text):
         lang = detect(text)
     except:
         lang = 'en'
-        
+
     stop_words = get_stop_words(lang)
     text = text.split(' ')
     return [word for word in text if word not in stop_words]
@@ -74,10 +71,9 @@ def filterVisibleText(text):
 
 
 def getText(soup):
-    text = filterVisibleText(soup.findAll(text=True)) 
+    text = filterVisibleText(soup.findAll(text=True))
     text = sanitizeText(text)
     return set(text)
-
 
 
 def scrapeSite(soup, url, db):
@@ -92,6 +88,13 @@ def scrapeSite(soup, url, db):
     db["words"] = words
 
 
+def getDescription(soup):
+    description = soup.findAll(attrs={"name": "description"})
+    if description == None:
+        return ''
+    return description
+
+
 def sanitizeUrl(parent_url, url):
     if "http" not in url:
         url = urljoin(parent_url, url)
@@ -100,41 +103,56 @@ def sanitizeUrl(parent_url, url):
 
 def getSoup(url):
     # Returns HTML (text) of the given URL.
-    response = requests.get(url, verify=False).text
+    try:
+        response = requests.get(url, verify=False)
+        response_status = response.status_code == 200
+        response_type = response.headers.get('content-type')
+        good_response = response.status_code and 'html' in response_type
+        return BeautifulSoup(response.text) if good_response else None
+    except:
+        return None
+
     # Creates 'soup' object from response (HTML). 'soup' is a python object that contains all the content and information/metadata of the website.
-    soup = BeautifulSoup(response)
-    return soup
 
 
 def getLinks(soup):
     links = []
     for link in soup.find_all('a'):
         href = link.get("href")
-        if href != None and 'mailto:' not in href:
+        if href != None:
             links.append(href)
     return links
+
+
+def addSite(url, soup, pages):
+    return {
+        'title': soup.title,
+        'description': getDescription(soup),
+        'score': 0
+    }
 
 
 def recursive_crawler(url, expdist, db, G):
     pages = db["pages"]
     if expdist >= 0:
-        if url not in pages:
-            soup = getSoup(url)
-            #pages[url] = enllaços que apunta no soup
-            pages[url] = soup
+        soup = getSoup(url)
+        if url not in pages and soup != None:
+
+            pages[url] = addSite(url, soup, pages)
             scrapeSite(soup, url, db)
-        if expdist > 0:
-            links = getLinks(pages[url])  
-            # add node u 
+
+        if expdist > 0 and soup != None:
+            links = getLinks(soup)
             G.add_node(url)
+
             for link in links:
+
                 print(link)
-                link = sanitizeUrl(url,link)
-                # add node v_i
+                link = sanitizeUrl(url, link)
                 G.add_node(url)
-                # add edge between u an v_i
-                G.add_edge(link,url)
-                recursive_crawler(link,expdist - 1, db)
+                G.add_edge(link, url)
+                recursive_crawler(link, expdist - 1, db, G)
+
 
 def crawler(url, maxdist):
     """
@@ -147,7 +165,8 @@ def crawler(url, maxdist):
         "words": {}
     }
     G = Graph([])
-    recursive_crawler(url, maxdist, db,G)
+    recursive_crawler(url, maxdist, db, G)
+    pr = pagerank(G)
     return db
 
 

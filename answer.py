@@ -15,8 +15,10 @@ def main():
         epilog=moogle.authors(),
     )
 
-    parser.add_argument("-q", "--query", type=str, help="query (use quotes for more than one word")
-    parser.add_argument("-d", "--database", type=str, help="filename of the database", default="moogle.dat")
+    parser.add_argument("-q", "--query", type=str,
+                        help="query (use quotes for more than one word")
+    parser.add_argument("-d", "--database", type=str,
+                        help="filename of the database", default="moogle.dat")
 
     args = parser.parse_args(sys.argv[1:])
 

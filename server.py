@@ -35,8 +35,10 @@ def main():
         epilog=moogle.authors(),
     )
 
-    parser.add_argument("-p", "--port", type=int, help="port where to listen", default=5000)
-    parser.add_argument("-d", "--database", type=str, help="filename of the database", default="moogle.dat")
+    parser.add_argument("-p", "--port", type=int,
+                        help="port where to listen", default=5000)
+    parser.add_argument("-d", "--database", type=str,
+                        help="filename of the database", default="moogle.dat")
 
     args = parser.parse_args(sys.argv[1:])
 
