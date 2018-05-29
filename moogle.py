@@ -126,12 +126,14 @@ def recursive_crawler(url, expdist, db, G):
         if expdist > 0:
             links = getLinks(pages[url])  
             # add node u 
-            G.add
+            G.add_node(url)
             for link in links:
                 print(link)
                 link = sanitizeUrl(url,link)
                 # add node v_i
+                G.add_node(url)
                 # add edge between u an v_i
+                G.add_edge(link,url)
                 recursive_crawler(link,expdist - 1, db)
 
 def crawler(url, maxdist):
