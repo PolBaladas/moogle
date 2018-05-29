@@ -5,19 +5,21 @@ import sys
 import util
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
-from bs4.element import Comment
+import networkx as nx
 from networkx import Graph
 from networkx import pagerank
+import pylab as plt
+
 
 from stop_words import get_stop_words
-from langdetect import detect
-from langdetect import detect_langs
 
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 sys.setrecursionlimit(50000)
+
+STOP_WORDS = set(get_stop_words('en') + get_stop_words('ca') + get_stop_words('es'))
 
 #############################################################################
 # Common part
@@ -46,24 +48,14 @@ def store(db, filename):
 def sanitizeText(text):
     # Sanitize Text
     text = util.clean_words(text)
-    try:
-        lang = detect(text)
-        stop_words = get_stop_words(lang)
-    except:
-        lang = 'en'
-        stop_words = get_stop_words('en')
-
     text = text.split(' ')
-    return [word for word in text if word not in stop_words]
+    return [word for word in text if word not in STOP_WORDS]
 
 
 def is_visible(element):
-    if element.parent.name in ['style', 'script', 'head', 'title', 'meta', '[document]']:
-        return False
-    if isinstance(element, Comment):
-        return False
-    return True
-
+    return element.parent.name not in [
+        'style', 'script', 'head', 'title', '[document]'
+    ]
 
 def filterVisibleText(text):
     visible = filter(is_visible, text)
@@ -77,34 +69,26 @@ def getText(soup):
 
 
 def scrapeSite(soup, url, db):
-    words = db["words"]
     text = getText(soup)
     for word in text:
         if word not in words:
-            words[word] = set([url])
+            db['words'][word] = set([url])
         else:
-            words[word].add(url)
-
-    db["words"] = words
-
+            db['words'][word].add(url)
 
 def getDescription(soup):
     description = soup.findAll(attrs={"name": "description"})
-    if description == None:
-        return ''
-    return description
+    return description if description != None else ' '
 
 
 def sanitizeUrl(parent_url, url):
-    if "http" not in url:
-        url = urljoin(parent_url, url)
-    return url
+    return urljoin(parent_url, url)
 
 
 def getSoup(url):
     # Returns HTML (text) of the given URL.
     try:
-        response = requests.get(url, verify=False, timeout=3)
+        response = requests.get(url, verify=False, timeout=1)
         response_status = response.status_code == 200
         response_type = response.headers.get('content-type')
         good_response = response.status_code and 'html' in response_type
@@ -117,7 +101,7 @@ def getSoup(url):
 
 def getLinks(soup):
     links = []
-    for link in soup.find_all('a'):
+    for link in soup.find_all('a', href=True):
         href = link.get("href")
         if href != None:
             links.append(href)
@@ -133,23 +117,29 @@ def addSite(url, soup, pages):
 
 
 def recursive_crawler(url, expdist, db, G):
+    nx.draw(G, with_labels = True)
+    plt.show()
     pages = db["pages"]
     if expdist >= 0:
-        soup = getSoup(url)
-        if url not in pages and soup != None:
-
-            pages[url] = addSite(url, soup, pages)
-            scrapeSite(soup, url, db)
-
-        if expdist > 0 and soup != None:
-            links = getLinks(soup)
+        soup = None
+        if url not in pages:
             G.add_node(url)
+            soup = getSoup(url)
+            if soup != None: 
+                pages[url] = addSite(url, soup, pages)
+                scrapeSite(soup, url, db)
+
+        if expdist > 0:
+            if soup:
+                links = getLinks(soup)
+            else:
+                links = G.neighbors(url)
 
             for link in links:
-
-                print(link)
                 link = sanitizeUrl(url, link)
-                G.add_node(url)
+                print(link)
+                if link not in pages:
+                    G.add_node(url)
                 G.add_edge(link, url)
                 recursive_crawler(link, expdist - 1, db, G)
 
@@ -168,6 +158,8 @@ def crawler(url, maxdist):
     recursive_crawler(url, maxdist, db, G)
     pr = pagerank(G)
     print(pr)
+    nx.draw(G, with_labels = True)
+    plt.show()
     return db
 
 
@@ -200,19 +192,17 @@ def answer(db, query):
 
     words = db["words"]
     pages = db["pages"]
-    print(words)
-    query_results = list(words[query])
+    queries = query.split(' ')
+    results = []
+    for query in queries:
+        if query in words:
+            results.append(words[query])
 
     web_results = []
-    i = 0
+
+    web_results = []
     for url in query_results:
         # Accedeixo al valor del diccionari que pertany a la clau url
-        soup = pages[url]
-        web_results.append({  # Fem un append d'un diccionari a la llista pages
-            'url': url,  # URL : URL
-            'title': soup.title.string,
-            'score': 100 - i
-        })
-        i += 1
+        web_results.append()
 
     return web_results
