@@ -167,6 +167,7 @@ def crawler(url, maxdist):
     G = Graph([])
     recursive_crawler(url, maxdist, db, G)
     pr = pagerank(G)
+    print(pr)
     return db
 
 
