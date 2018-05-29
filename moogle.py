@@ -6,6 +6,7 @@ import util
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 from bs4.element import Comment
+from networkx import graph
 
 from stop_words import get_stop_words
 from langdetect import detect
@@ -114,18 +115,23 @@ def getLinks(soup):
     return links
 
 
-def recursive_crawler(url, expdist, db):
+def recursive_crawler(url, expdist, db, G):
     pages = db["pages"]
     if expdist >= 0:
         if url not in pages:
             soup = getSoup(url)
+            #pages[url] = enllaços que apunta no soup
             pages[url] = soup
             scrapeSite(soup, url, db)
         if expdist > 0:
-            links = getLinks(pages[url])
+            links = getLinks(pages[url])  
+            # add node u 
+            G.add
             for link in links:
                 print(link)
                 link = sanitizeUrl(url,link)
+                # add node v_i
+                # add edge between u an v_i
                 recursive_crawler(link,expdist - 1, db)
 
 def crawler(url, maxdist):
@@ -138,7 +144,8 @@ def crawler(url, maxdist):
         "pages": {},
         "words": {}
     }
-    recursive_crawler(url, maxdist, db)
+    G = Graph([])
+    recursive_crawler(url, maxdist, db,G)
     return db
 
 
