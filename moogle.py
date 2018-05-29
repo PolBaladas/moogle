@@ -117,8 +117,9 @@ def addSite(url, soup, pages):
 
 
 def recursive_crawler(url, expdist, db, G):
+    plt.clf()
     nx.draw(G, with_labels = True)
-    plt.show()
+    plt.pause(0.0001)
     pages = db["pages"]
     if expdist >= 0:
         soup = None
@@ -143,7 +144,6 @@ def recursive_crawler(url, expdist, db, G):
                 G.add_edge(link, url)
                 recursive_crawler(link, expdist - 1, db, G)
 
-
 def crawler(url, maxdist):
     """
         Crawls the web starting from url,
@@ -155,11 +155,11 @@ def crawler(url, maxdist):
         "words": {}
     }
     G = Graph([])
+    plt.show()
     recursive_crawler(url, maxdist, db, G)
     pr = pagerank(G)
     print(pr)
     nx.draw(G, with_labels = True)
-    plt.show()
     return db
 
 
