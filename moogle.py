@@ -6,7 +6,7 @@ import util
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 import networkx as nx
-from networkx import Graph
+from networkx import DiGraph
 from networkx import pagerank
 import pylab as plt
 
@@ -71,7 +71,7 @@ def getText(soup):
 def scrapeSite(soup, url, db):
     text = getText(soup)
     for word in text:
-        if word not in words:
+        if word not in db['words']:
             db['words'][word] = set([url])
         else:
             db['words'][word].add(url)
@@ -117,15 +117,15 @@ def addSite(url, soup, pages):
 
 
 def recursive_crawler(url, expdist, db, G):
-    nx.draw(G, with_labels = True)
-    plt.show()
+    #nx.draw(G, with_labels = True)
+    #plt.show()
     pages = db["pages"]
     if expdist >= 0:
         soup = None
         if url not in pages:
             G.add_node(url)
             soup = getSoup(url)
-            if soup != None: 
+            if soup: 
                 pages[url] = addSite(url, soup, pages)
                 scrapeSite(soup, url, db)
 
@@ -138,9 +138,10 @@ def recursive_crawler(url, expdist, db, G):
             for link in links:
                 link = sanitizeUrl(url, link)
                 print(link)
-                if link not in pages:
-                    G.add_node(url)
-                G.add_edge(link, url)
+                if not G.has_edge(url,link):
+                    if link not in G:
+                        G.add_node(link)
+                    G.add_edge(url,link)
                 recursive_crawler(link, expdist - 1, db, G)
 
 
@@ -154,7 +155,7 @@ def crawler(url, maxdist):
         "pages": {},
         "words": {}
     }
-    G = Graph([])
+    G = DiGraph([])
     recursive_crawler(url, maxdist, db, G)
     pr = pagerank(G)
     print(pr)
