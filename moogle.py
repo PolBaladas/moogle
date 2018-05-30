@@ -119,14 +119,13 @@ def addSite(url, soup, pages):
 def recursive_crawler(url, expdist, db, G):
     #nx.draw(G, with_labels = True)
     #plt.show()
-    pages = db["pages"]
+    #pages = db["pages"]
     if expdist >= 0:
         soup = None
-        if url not in pages:
-            G.add_node(url)
+        if  not list(G.neighbors(url)):
             soup = getSoup(url)
             if soup: 
-                pages[url] = addSite(url, soup, pages)
+                db[url] = addSite(url, soup, db["pages"])
                 scrapeSite(soup, url, db)
 
         if expdist > 0:
@@ -137,11 +136,8 @@ def recursive_crawler(url, expdist, db, G):
 
             for link in links:
                 link = sanitizeUrl(url, link)
+                G.add_edge(url,link)
                 print(link)
-                if not G.has_edge(url,link):
-                    if link not in G:
-                        G.add_node(link)
-                    G.add_edge(url,link)
                 recursive_crawler(link, expdist - 1, db, G)
 
 
@@ -156,6 +152,8 @@ def crawler(url, maxdist):
         "words": {}
     }
     G = DiGraph([])
+    #Cas base
+    G.add_node(url)
     recursive_crawler(url, maxdist, db, G)
     pr = pagerank(G)
     print(pr)
