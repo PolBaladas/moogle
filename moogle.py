@@ -9,6 +9,7 @@ import networkx as nx
 from networkx import DiGraph
 from networkx import pagerank
 import pylab as plt
+from collections import deque
 
 
 from stop_words import get_stop_words
@@ -108,7 +109,7 @@ def getLinks(soup):
     return links
 
 
-def addSite(url, soup, pages):
+def addSite(soup):
     return {
         'title': soup.title,
         'description': getDescription(soup),
@@ -116,31 +117,33 @@ def addSite(url, soup, pages):
     }
 
 
-def recursive_crawler(url, expdist, db, G):
-    plt.clf()
-    nx.draw(G, with_labels = True)
-    plt.pause(0.0001)
-    #pages = db["pages"]
-    if expdist >= 0:
-        soup = None
-        if  not list(G.neighbors(url)):
-            soup = getSoup(url)
-            if soup: 
-                db[url] = addSite(url, soup, db["pages"])
-                scrapeSite(soup, url, db)
-
-        if expdist > 0:
-            if soup:
-                links = getLinks(soup)
-            else:
-                links = G.neighbors(url)
-
+def BFS_crawler(url, expdist, db, G):
+    #plt.clf()
+    #nx.draw(G, with_labels = True)
+    #plt.pause(0.0001)
+    links_queue = deque()
+    links_queue.append([expdist,url])
+    visit = set()
+    while len(links_queue):
+        web = links_queue.pop()
+        url = web[1]
+        dist = web[0]
+        soup = getSoup(url)
+        if soup:
+            db[url] = addSite(soup)
+            scrapeSite(soup, url, db)
+            links = getLinks(soup)
             for link in links:
-                link = sanitizeUrl(url, link)
-                G.add_edge(url,link)
-                print(link)
-                recursive_crawler(link, expdist - 1, db, G)
+                if not link in visit:
+                    link = sanitizeUrl(url, link)
+                    G.add_edge(url,link)
+                    visit.add(link)
+                    if dist > 0:
+                        print(link)
+                        links_queue.append([dist-1,link])
 
+
+    
 
 def crawler(url, maxdist):
     """
@@ -154,9 +157,7 @@ def crawler(url, maxdist):
     }
     G = DiGraph([])
     plt.show()
-    #Cas base
-    G.add_node(url)
-    recursive_crawler(url, maxdist, db, G)
+    BFS_crawler(url, maxdist, db, G)
     pr = pagerank(G)
     print(pr)
     nx.draw(G, with_labels = True)
