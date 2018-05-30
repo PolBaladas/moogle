@@ -82,7 +82,7 @@ def getDescription(soup):
 
 
 def sanitizeUrl(parent_url, url):
-    return urljoin(parent_url, url)
+    return urljoin(parent_url, url).strip('/')
 
 
 def getSoup(url):
@@ -117,8 +117,9 @@ def addSite(url, soup, pages):
 
 
 def recursive_crawler(url, expdist, db, G):
-    #nx.draw(G, with_labels = True)
-    #plt.show()
+    plt.clf()
+    nx.draw(G, with_labels = True)
+    plt.pause(0.0001)
     #pages = db["pages"]
     if expdist >= 0:
         soup = None
@@ -152,13 +153,13 @@ def crawler(url, maxdist):
         "words": {}
     }
     G = DiGraph([])
+    plt.show()
     #Cas base
     G.add_node(url)
     recursive_crawler(url, maxdist, db, G)
     pr = pagerank(G)
     print(pr)
     nx.draw(G, with_labels = True)
-    plt.show()
     return db
 
 
