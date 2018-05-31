@@ -20,7 +20,8 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 sys.setrecursionlimit(50000)
 
-STOP_WORDS = set(get_stop_words('en') + get_stop_words('ca') + get_stop_words('es'))
+STOP_WORDS = set(get_stop_words('en') +
+                 get_stop_words('ca') + get_stop_words('es'))
 
 #############################################################################
 # Common part
@@ -58,6 +59,7 @@ def is_visible(element):
         'style', 'script', 'head', 'title', '[document]'
     ]
 
+
 def filterVisibleText(text):
     visible = filter(is_visible, text)
     return u" ".join(t.strip() for t in visible)
@@ -65,10 +67,7 @@ def filterVisibleText(text):
 
 def getText(soup):
     text = filterVisibleText(soup.findAll(text=True))
-    #Arreglar Sanitize
-    print(text)
     text = sanitizeText(text)
-    print(text)
     return set(text)
 
 
@@ -79,7 +78,7 @@ def scrapeSite(soup, url, db):
             db['words'][word] = set([url])
         else:
             db['words'][word].add(url)
-    print(db["words"])
+
 
 def getDescription(soup):
     description = soup.findAll(attrs={"name": "description"})
@@ -99,6 +98,7 @@ def getSoup(url):
         good_response = response.status_code and 'html' in response_type
         return BeautifulSoup(response.text) if good_response else None
     except:
+        print("Error: Bad Content. Skipping link and crawling on.")
         return None
 
     # Creates 'soup' object from response (HTML). 'soup' is a python object that contains all the content and information/metadata of the website.
@@ -122,14 +122,15 @@ def addSite(soup):
 
 
 def BFS_crawler(url, expdist, db, G):
-    #plt.clf()
-    #nx.draw(G, with_labels = True)
-    #plt.show()
-    #plt.pause(0.0001)
     links_queue = deque()
-    links_queue.append([expdist,url])
+    links_queue.append([expdist, url])
     visit = set()
     while len(links_queue):
+
+        plt.clf()
+        nx.draw(G, with_labels = True)
+        plt.pause(0.0001)
+
         web = links_queue.pop()
         url = web[1]
         dist = web[0]
@@ -141,14 +142,12 @@ def BFS_crawler(url, expdist, db, G):
                 links = getLinks(soup)
                 for link in links:
                     link = sanitizeUrl(url, link)
-                    G.add_edge(url,link)
+                    G.add_edge(url, link)
                     if not link in visit:
                         visit.add(link)
                         print(link)
-                        links_queue.append([dist-1,link])
+                        links_queue.append([dist-1, link])
 
-
-    
 
 def crawler(url, maxdist):
     """
@@ -161,12 +160,11 @@ def crawler(url, maxdist):
         "words": {}
     }
     G = DiGraph([])
+    plt.show()
     BFS_crawler(url, maxdist, db, G)
+    plt.show()
     #pr = pagerank(G)
     #print(pr)
-    #nx.draw(G, with_labels = True)
-    #plt.show()
-    print(db["words"])
     return db
 
 

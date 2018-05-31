@@ -5,10 +5,11 @@ def clean_word(word):
     """Returns the longest prefix of a word made of latin unicode characters."""
     for i, c in enumerate(word):
         try:
-            if not unicodedata.name(c).startswith("latin"):
+            if not unicodedata.name(c).startswith("LATIN"):
                 return word[:i].lower()
-        except:
-            pass
+        except :
+            return word[:i].lower()
+        
     return word.lower()
 
 
