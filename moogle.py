@@ -65,7 +65,10 @@ def filterVisibleText(text):
 
 def getText(soup):
     text = filterVisibleText(soup.findAll(text=True))
+    #Arreglar Sanitize
+    print(text)
     text = sanitizeText(text)
+    print(text)
     return set(text)
 
 
@@ -76,6 +79,7 @@ def scrapeSite(soup, url, db):
             db['words'][word] = set([url])
         else:
             db['words'][word].add(url)
+    print(db["words"])
 
 def getDescription(soup):
     description = soup.findAll(attrs={"name": "description"})
@@ -120,6 +124,7 @@ def addSite(soup):
 def BFS_crawler(url, expdist, db, G):
     #plt.clf()
     #nx.draw(G, with_labels = True)
+    #plt.show()
     #plt.pause(0.0001)
     links_queue = deque()
     links_queue.append([expdist,url])
@@ -130,15 +135,15 @@ def BFS_crawler(url, expdist, db, G):
         dist = web[0]
         soup = getSoup(url)
         if soup:
-            db[url] = addSite(soup)
+            db['pages'][url] = addSite(soup)
             scrapeSite(soup, url, db)
-            links = getLinks(soup)
-            for link in links:
-                if not link in visit:
+            if dist > 0:
+                links = getLinks(soup)
+                for link in links:
                     link = sanitizeUrl(url, link)
                     G.add_edge(url,link)
-                    visit.add(link)
-                    if dist > 0:
+                    if not link in visit:
+                        visit.add(link)
                         print(link)
                         links_queue.append([dist-1,link])
 
@@ -156,11 +161,12 @@ def crawler(url, maxdist):
         "words": {}
     }
     G = DiGraph([])
-    plt.show()
     BFS_crawler(url, maxdist, db, G)
-    pr = pagerank(G)
-    print(pr)
-    nx.draw(G, with_labels = True)
+    #pr = pagerank(G)
+    #print(pr)
+    #nx.draw(G, with_labels = True)
+    #plt.show()
+    print(db["words"])
     return db
 
 
