@@ -11,6 +11,9 @@ from networkx import pagerank
 import pylab as plt
 from collections import deque
 
+from functools import partial
+from multiprocessing import Pool
+
 
 from stop_words import get_stop_words
 
@@ -40,8 +43,6 @@ def authors():
 # Crawler
 #############################################################################
 
-
-
 def store(db, filename):
     with open(filename, "wb") as f:
         print("store", filename)
@@ -55,9 +56,8 @@ def sanitizeText(text):
         text = util.clean_words(text)
     except:
         text.encode('utf-8')
-    
-    text = text.split(' ')
-    filter(None, text)
+
+    filter(None, text.split(' '))
     return [word for word in text if word not in STOP_WORDS]
 
 
@@ -128,15 +128,25 @@ def addSite(soup):
     }
 
 
+def parseLink(link, url, G, links_queue, visit, dist):
+    link = sanitizeUrl(url, link)
+    print(link)
+    G.add_edge(url, link)
+    if not link in visit:
+        visit.add(link)
+        links_queue.append([dist-1, link])
+    return (G, links_queue, visit)
+
+
 def BFS_crawler(url, expdist, db, G):
     links_queue = deque()
     links_queue.append([expdist, url])
     visit = set()
     while len(links_queue):
 
-        #plt.clf()
-        #nx.draw(G, with_labels=True)
-        #plt.pause(0.0001)
+        # plt.clf()
+        #nx.draw(G, with_labels = True)
+        # plt.pause(0.0001)
 
         web = links_queue.pop()
         url = web[1]
@@ -147,13 +157,12 @@ def BFS_crawler(url, expdist, db, G):
             scrapeSite(soup, url, db)
             if dist > 0:
                 links = getLinks(soup)
-                for link in links:
-                    link = sanitizeUrl(url, link)
-                    G.add_edge(url, link)
-                    if not link in visit:
-                        visit.add(link)
-                        print(link)
-                        links_queue.append([dist-1, link])
+                parser = partial(parseLink, G=G, url=url,
+                                 links_queue=links_queue, visit=visit, dist=dist)
+                with Pool(15) as p:
+                    G, links_queue, visit = p.map(parser, links)
+                    p.terminate()
+                    p.join()
 
 
 def crawler(url, maxdist):
@@ -167,11 +176,11 @@ def crawler(url, maxdist):
         "words": {}
     }
     G = DiGraph([])
-    #plt.show()
+    # plt.show()
     BFS_crawler(url, maxdist, db, G)
-    print(db["words"])
-    #pr = pagerank(G)
-    # print(pr)
+    # plt.show()
+    pr = pagerank(G)
+    print(pr)
     return db
 
 
