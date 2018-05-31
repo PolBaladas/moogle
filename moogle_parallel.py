@@ -52,12 +52,8 @@ def store(db, filename):
 
 def sanitizeText(text):
     # Sanitize Text
-    try:
-        text = util.clean_words(text)
-    except:
-        text.encode('utf-8')
-
-    filter(None, text.split(' '))
+    text = util.clean_words(text)
+    text = text.split(' ')
     return [word for word in text if word not in STOP_WORDS]
 
 
@@ -136,7 +132,6 @@ def parseLink(link, url, G, links_queue, visit, dist):
         visit.add(link)
         links_queue.append([dist-1, link])
     return (G, links_queue, visit)
-
 
 def BFS_crawler(url, expdist, db, G):
     links_queue = deque()

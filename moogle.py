@@ -120,9 +120,10 @@ def getLinks(soup):
     return links
 
 
-def addSite(soup):
+def addSite(soup, url):
     return {
-        'title': soup.title,
+        'url': url,
+        'title': soup.title.string,
         'description': getDescription(soup),
         'score': 0
     }
@@ -143,7 +144,7 @@ def BFS_crawler(url, expdist, db, G):
         dist = web[0]
         soup = getSoup(url)
         if soup:
-            db['pages'][url] = addSite(soup)
+            db['pages'][url] = addSite(soup, url)
             scrapeSite(soup, url, db)
             if dist > 0:
                 links = getLinks(soup)
@@ -206,15 +207,19 @@ def answer(db, query):
     pages = db["pages"]
     queries = query.split(' ')
     results = []
+
     for query in queries:
         if query in words:
             results.append(words[query])
 
-    web_results = []
+    if not len(results): 
+        return results
+
+    result_set = results[0].intersection(*results)
+    print(result_set)
 
     web_results = []
-    for url in query_results:
-        # Accedeixo al valor del diccionari que pertany a la clau url
-        web_results.append()
+    for url in result_set:
+        web_results.append(db["pages"][url])
 
     return web_results
