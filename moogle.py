@@ -18,7 +18,6 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
-sys.setrecursionlimit(50000)
 
 STOP_WORDS = set(get_stop_words('en') +
                  get_stop_words('ca') + get_stop_words('es'))
