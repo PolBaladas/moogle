@@ -40,7 +40,6 @@ def authors():
 #############################################################################
 
 
-
 def store(db, filename):
     with open(filename, "wb") as f:
         print("store", filename)
@@ -130,7 +129,7 @@ def addSite(soup, url):
 
 def BFS_crawler(url, expdist, db, G):
     links_queue = deque()
-    links_queue.append([expdist, url])
+    links_queue.appendleft([expdist, url])
     visit = set()
     while len(links_queue):
         web = links_queue.pop()
@@ -148,7 +147,7 @@ def BFS_crawler(url, expdist, db, G):
                     if not link in visit:
                         visit.add(link)
                         print(link)
-                        links_queue.append([dist-1, link])
+                        links_queue.appendleft([dist-1, link])
 
 
 def crawler(url, maxdist):
@@ -224,7 +223,3 @@ def answer(db, query):
         web_results.append(db["pages"][url])
 
     return web_results
-
-
-
-
