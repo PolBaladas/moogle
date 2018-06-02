@@ -12,7 +12,7 @@ import pylab as plt
 from collections import deque
 
 from functools import partial
-from multiprocessing import Pool
+from multiprocessing import Pool # my extended me library.
 
 
 from stop_words import get_stop_words

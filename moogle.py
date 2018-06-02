@@ -6,8 +6,7 @@ import util
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 import networkx as nx
-from networkx import DiGraph
-from networkx import pagerank
+from networkx import DiGraph, pagerank
 import pylab as plt
 from collections import deque
 
@@ -61,14 +60,14 @@ def sanitizeText(text):
     return [word for word in text if word not in STOP_WORDS]
 
 
-def is_visible(element):
+def isVisible(element):
     return element.parent.name not in [
         'style', 'script', 'head', 'title', '[document]'
     ]
 
 
 def filterVisibleText(text):
-    visible = filter(is_visible, text)
+    visible = filter(isVisible, text)
     return u" ".join(t.strip() for t in visible)
 
 
@@ -115,7 +114,7 @@ def getLinks(soup):
     links = []
     for link in soup.find_all('a', href=True):
         href = link.get("href")
-        if href != None:
+        if href != None and 'mailto:' not in href:
             links.append(href)
     return links
 
@@ -123,7 +122,7 @@ def getLinks(soup):
 def addSite(soup, url):
     return {
         'url': url,
-        'title': soup.title.string,
+        'title': soup.title,
         'description': getDescription(soup),
         'score': 0
     }
@@ -134,11 +133,6 @@ def BFS_crawler(url, expdist, db, G):
     links_queue.append([expdist, url])
     visit = set()
     while len(links_queue):
-
-        #plt.clf()
-        #nx.draw(G, with_labels=True)
-        #plt.pause(0.0001)
-
         web = links_queue.pop()
         url = web[1]
         dist = web[0]
@@ -168,11 +162,16 @@ def crawler(url, maxdist):
         "words": {}
     }
     G = DiGraph([])
-    #plt.show()
     BFS_crawler(url, maxdist, db, G)
-    print(db["words"])
-    #pr = pagerank(G)
-    # print(pr)
+    #nx.draw(G, with_labels=True)
+    #plt.plot()
+    pr = pagerank(G)
+    for element in pr.keys():
+        try:
+            db["pages"][element]['score'] = pr[element] * 100
+        except :
+            pass
+    print(db["pages"])
     return db
 
 
@@ -211,8 +210,10 @@ def answer(db, query):
     for query in queries:
         if query in words:
             results.append(words[query])
+        else:
+            results.append(set())
 
-    if not len(results): 
+    if not len(results):
         return results
 
     result_set = results[0].intersection(*results)
@@ -223,3 +224,7 @@ def answer(db, query):
         web_results.append(db["pages"][url])
 
     return web_results
+
+
+
+
