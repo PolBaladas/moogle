@@ -13,7 +13,6 @@ import pylab as plt
 from collections import deque
 
 
-
 from stop_words import get_stop_words
 
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -35,9 +34,6 @@ BASE = ''
 
 def authors():
     """Returns a string with the name of the authors of the work."""
-
-    # Please modify this function
-
     return "Oriol Domingo, Pol Baladas"
 
 
@@ -54,7 +50,6 @@ def store(db, filename):
 
 
 def sanitizeText(text):
-    # Sanitize Text
     try:
         text = util.clean_words(text)
     except:
@@ -92,51 +87,48 @@ def scrapeSite(soup, url, db):
 
 
 def sanitizeUrl(url):
-    new_url = urljoin(BASE, url).strip('/')
-    return new_url
+    return urljoin(BASE, url).strip('/')
 
 
 def getSoup(url):
-    # Returns HTML (text) of the given URL.
     try:
         response = requests.get(url, verify=False, timeout=0.5)
-        response_status = response.status_code == 200
-        response_type = response.headers.get('content-type')
-        good_response = response.status_code and 'html' in response_type
-        return BeautifulSoup(response.text, 'lxml') if good_response else None
+        return BeautifulSoup(response.text, 'lxml')
     except:
-        print("Error: Bad Content. Skipping link and crawling on.")
+        print("Error: Bad Content, skipping link. Do not stop.")
         return None
-
-    # Creates 'soup' object from response (HTML). 'soup' is a python object that contains all the content and information/metadata of the website.
 
 
 def getDomain(url):
-    parsed = urlparse(url)
-    return parsed.netloc
+    return urlparse(url).netloc
 
 
 def isFromDomain(url):
     domain = getDomain(url)
-    return (url[0:4]!='http') or (domain == DOMAIN)
+    return (url[0:4] != 'http') or (domain == DOMAIN)
+
+
+def isValidUrl(url):
+    return (
+        "mailto:" not in url['href'] and
+        '#' not in url['href'] and
+        isFromDomain(url['href'])
+    )
 
 
 def getLinks(soup):
-    links = []
-    for link in soup.find_all('a', href=True):
-        href = link.get("href")
-        if 'mailto' not in href and isFromDomain(href):
-            if '#' not in url:
-                links.append(url)
-    if(not links):
-        print("Skipping anchor links...")
-    return links
+    results = []
+    links = filter(isValidUrl, soup.find_all('a', href=True))
+    for link in list(links):
+        url = sanitizeUrl(link['href'])
+        results.append(url)
+    return results
 
 
 def addSite(soup, url):
     return {
         'url': url,
-        'title': soup.title.string if soup.title else soup.title,
+        'title': soup.title.string if soup.title else 'no title',
         'score': 0
     }
 
@@ -146,9 +138,7 @@ def BFS_crawler(url, expdist, db, G):
     links_queue.appendleft([expdist, url])
     visit = set()
     while len(links_queue):
-        web = links_queue.pop()
-        url = web[1]
-        dist = web[0]
+        dist, url = links_queue.pop()
         soup = getSoup(url)
         if soup:
             db['pages'][url] = addSite(soup, url)
@@ -156,12 +146,25 @@ def BFS_crawler(url, expdist, db, G):
             if dist > 0:
                 links = getLinks(soup)
                 for link in links:
-                    link = sanitizeUrl(link)
                     G.add_edge(url, link)
                     if not link in visit:
                         visit.add(link)
                         print(link)
                         links_queue.appendleft([dist-1, link])
+        else:
+            db['pages'][url] = {}
+
+
+def plotGraph(G):
+    nx.draw(G, with_labels=True)
+    plt.plot()
+    plt.show()
+
+
+def pageRank(G, db):
+    pr = pagerank(G)
+    for element in pr.keys():
+        db['pages'][element]['score'] = pr[element] * 10000
 
 
 def crawler(url, maxdist):
@@ -180,20 +183,17 @@ def crawler(url, maxdist):
         "pages": {},
         "words": {}
     }
-    G = DiGraph([])
-    BFS_crawler(url, maxdist, db, G)
-    print("Crawling Done. Computing PageRank...")
-    pr = pagerank(G)
-    print("Plotting BFS")
-    nx.draw(G, with_labels=True)
-    plt.plot()
-    plt.show()
 
-    for element in pr.keys():
-        try:
-            db["pages"][element]['score'] = pr[element] * 10000
-        except:
-            pass
+    G = DiGraph([])
+
+    print("Crawling", url)
+    BFS_crawler(url, maxdist, db, G)
+
+    print("Computing PageRank...")
+    pageRank(G, db)
+
+    print("Plotting BFS...")
+    plotGraph(G)
 
     return db
 
