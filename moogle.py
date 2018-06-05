@@ -3,12 +3,15 @@ import requests
 import urllib3
 import sys
 import util
-from urllib.parse import urljoin
+import operator
+
+from urllib.parse import urljoin, urlparse, urldefrag
 from bs4 import BeautifulSoup
 import networkx as nx
 from networkx import DiGraph, pagerank
 import pylab as plt
 from collections import deque
+
 
 
 from stop_words import get_stop_words
@@ -21,6 +24,9 @@ sys.setrecursionlimit(50000)
 
 STOP_WORDS = set(get_stop_words('en') +
                  get_stop_words('ca') + get_stop_words('es'))
+
+DOMAIN = ''
+BASE = ''
 
 #############################################################################
 # Common part
@@ -53,7 +59,7 @@ def sanitizeText(text):
         text = util.clean_words(text)
     except:
         text.encode('utf-8')
-    
+
     text = text.split(' ')
     filter(None, text)
     return [word for word in text if word not in STOP_WORDS]
@@ -85,23 +91,19 @@ def scrapeSite(soup, url, db):
             db['words'][word].add(url)
 
 
-def getDescription(soup):
-    description = soup.findAll(attrs={"name": "description"})
-    return description if description != None else ' '
-
-
-def sanitizeUrl(parent_url, url):
-    return urljoin(parent_url, url).strip('/')
+def sanitizeUrl(url):
+    new_url = urljoin(BASE, url).strip('/')
+    return new_url
 
 
 def getSoup(url):
     # Returns HTML (text) of the given URL.
     try:
-        response = requests.get(url, verify=False, timeout=1)
+        response = requests.get(url, verify=False, timeout=0.5)
         response_status = response.status_code == 200
         response_type = response.headers.get('content-type')
         good_response = response.status_code and 'html' in response_type
-        return BeautifulSoup(response.text) if good_response else None
+        return BeautifulSoup(response.text, 'lxml') if good_response else None
     except:
         print("Error: Bad Content. Skipping link and crawling on.")
         return None
@@ -109,20 +111,32 @@ def getSoup(url):
     # Creates 'soup' object from response (HTML). 'soup' is a python object that contains all the content and information/metadata of the website.
 
 
+def getDomain(url):
+    parsed = urlparse(url)
+    return parsed.netloc
+
+
+def isFromDomain(url):
+    domain = getDomain(url)
+    return (url[0:4]!='http') or (domain == DOMAIN)
+
+
 def getLinks(soup):
     links = []
     for link in soup.find_all('a', href=True):
         href = link.get("href")
-        if href != None and 'mailto:' not in href:
-            links.append(href)
+        if 'mailto' not in href and isFromDomain(href):
+            if '#' not in url:
+                links.append(url)
+    if(not links):
+        print("Skipping anchor links...")
     return links
 
 
 def addSite(soup, url):
     return {
         'url': url,
-        'title': soup.title,
-        'description': getDescription(soup),
+        'title': soup.title.string if soup.title else soup.title,
         'score': 0
     }
 
@@ -142,7 +156,7 @@ def BFS_crawler(url, expdist, db, G):
             if dist > 0:
                 links = getLinks(soup)
                 for link in links:
-                    link = sanitizeUrl(url, link)
+                    link = sanitizeUrl(link)
                     G.add_edge(url, link)
                     if not link in visit:
                         visit.add(link)
@@ -156,21 +170,31 @@ def crawler(url, maxdist):
         following up to maxdist links
         and returns the built database.
     """
+    global DOMAIN
+    global BASE
+
+    DOMAIN = getDomain(url)
+    BASE = url
+
     db = {
         "pages": {},
         "words": {}
     }
     G = DiGraph([])
     BFS_crawler(url, maxdist, db, G)
-    #nx.draw(G, with_labels=True)
-    #plt.plot()
+    print("Crawling Done. Computing PageRank...")
     pr = pagerank(G)
+    print("Plotting BFS")
+    nx.draw(G, with_labels=True)
+    plt.plot()
+    plt.show()
+
     for element in pr.keys():
         try:
-            db["pages"][element]['score'] = pr[element] * 100
-        except :
+            db["pages"][element]['score'] = pr[element] * 10000
+        except:
             pass
-    print(db["pages"])
+
     return db
 
 
@@ -221,5 +245,7 @@ def answer(db, query):
     web_results = []
     for url in result_set:
         web_results.append(db["pages"][url])
+
+    web_results.sort(key=operator.itemgetter('score'), reverse=True)
 
     return web_results

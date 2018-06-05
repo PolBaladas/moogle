@@ -12,7 +12,7 @@ import pylab as plt
 from collections import deque
 
 from functools import partial
-from multiprocessing import Pool # my extended me library.
+from multiprocessing import Pool  # my extended me library.
 
 
 from stop_words import get_stop_words
@@ -132,6 +132,7 @@ def parseLink(link, url, G, links_queue, visit, dist):
         visit.add(link)
         links_queue.append([dist-1, link])
     return (G, links_queue, visit)
+
 
 def BFS_crawler(url, expdist, db, G):
     links_queue = deque()
