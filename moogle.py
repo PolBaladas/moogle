@@ -12,6 +12,7 @@ from networkx import DiGraph, pagerank
 import pylab as plt
 from collections import deque
 
+import PyPDF2
 
 from stop_words import get_stop_words
 
@@ -90,10 +91,35 @@ def sanitizeUrl(url):
     return urljoin(BASE, url).strip('/')
 
 
+def writePDF(file_name, binary):
+    with open(file_name, "wb") as file:
+        file.write(binary)
+
+
+def getPDFText(url, binary):
+    writePDF(url, filename)
+    file = open(url,'rb')
+    pdf = PyPDF2.PdfFileReader(file)
+    text = ''
+    for page in pdf:
+        text += page.extractText()
+    print(text)
+    return text
+
+
 def getSoup(url):
     try:
-        response = requests.get(url, verify=False, timeout=0.5)
-        return BeautifulSoup(response.text, 'lxml')
+        text = ''
+        r = requests.get(url, verify=False, timeout=0.5)
+        content_type = r.headers.get('content-type')
+        print(content_type)
+        if "application/pdf" == content_type:
+            text = getPDFText(url, r.content)
+        else:
+            text = r.text
+
+        return BeautifulSoup(text, 'lxml')
+    
     except:
         print("Error: Bad Content, skipping link. Do not stop.")
         return None
