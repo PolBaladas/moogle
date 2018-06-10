@@ -1,275 +1,196 @@
-# µoogle
+## Crawler
 
-The µoogle project for GCED-AP2 (2018 edition)
+### Estructures de dades
 
+* **DataBase**: La nostra base de dades és un diccionari amb dues claus, pàgines i paraules. Aquestes claus et permeten indexar  en subdiccionaris, que contenen informació sobre les relacions pàgina-caràcterístiques i  paraules-pàgines. 
 
-# Documentation
+  ``` python
+  db = {
+      'pages':{
+          'url': {
+              'url':
+              'title':
+          	'score': 
+          }
+      }
+      'words':{
+          'word': set(url)
+      }
+  }
+  ```
 
-This page describes the µoogle project for the AP2 course at GCED. µoogle stands for
-"micro Google" and your task is to implement the core of a simple system to
-crawl web pages and answer queries from users, by reporting which pages
-contain all the words they search.
+* **Graf dirigit**: El graf dirigit és una xarxa de relacions, on el fill d'un node és una url que es troba en la web del node pare. S'utilitza la llibreria ```networkx``` per implementar un graf dirigit.
 
+  ```python
+  from networkx import DiGraph
+  G = DiGraph()
+  G.add_node(1)
+  G.add_node(2)
+  G.add_node(3)
+  G.add_edge(1,2)
+  G.add_edge(3,2)
+  print(G.edges())
+  >>> [(1,2),(3,2)]
+  print(G.nodes())
+  >>> [1,2,3]
+  ```
 
-## Demo
 
-This screenshot shows the home page of the web server:
+* **Cua**: Per poder implementar l'algorisme BFS necessitem una cua on anar guardant les url sota la política FIFO. En el nostre cas implementem una cua on cada entrada és una llista de dos elements,(link, distància a explorar). S'utilitza la llibreria deque per implementar la cua, atès a l'eficiència de la seva implementació.
 
-![Home page](images/cap1.png)
+  ``` python
+  from collections import deque
+  queue = deque()
+  #els elements s'afegeixen a l'esquerre per tenir la representacio d'una cua
+  queue.appendleft(1)
+  queue.appendleft(2)
+  queue.appendleft(3)
+  queue.pop() #elimina de la cua l'element més a la dreta i el retorna
+  >>> 1
+  print(queue)
+  >>> 2 3
+  ```
 
-Looks familiar?
 
-This screenshot shows the results of quering for `the star`:
 
-![Search page](images/cap2.png)
+### Complexitat
 
+Per descriure la complexitat algorísmica s'utilitzarà notació asimptòtica:
 
-## Architecture
+- Relació complexitat funció/acció:
 
-The architecture of the system is as follows:
+  |                  $O(1)$                  |                  $O(n)$                  | $O(n²)$                   |
+  | :--------------------------------------: | :--------------------------------------: | ------------------------- |
+  |             Crear cua i set              |                getSoup()                 | scrapeSite() (Worst Case) |
+  | Afegir/Eliminar element en la cua, diccionar (Average Case), set | Afegir element en un diccionari (Amortized Worst Case) |                           |
+  |   Mirar si un element és  dins un set    |       scrapeSite() (Average Case)        |                           |
+  | Consultar element d'una llista indexant  |                getLinks()                |                           |
+  | Afegir element en un diccionari (Average Case) |                                          |                           |
+  |              sanitizeUrl()               |                                          |                           |
+  |         Afegir aresta en el graf         |                                          |                           |
 
--   The `server.py` module is the web server that users will use
-    in order to get answers to their queries.
 
-    In order to start the web server, simply run `./server.py`.
-    Or use the `--help` flag to get more options.
 
-    You can interact with
-    the web server by opening the `http://localhost:5000` URL in your
-    browser.
+### Algorisme
 
-    Additionally, the web server also offers some sample files
-    under the `static` directory. Point your bowser to
-    `http://localhost:5000/static/index.html` to browse their root.
-    This figure shows the relations between these
-    pages:
+El crawler està basat en l'algorisme Breadth First Search (**BFS** ) . Aquest algorisme permet poder anar recorrent layer per layer, i així en cas de trobar una pàgina ja visitada no tenim la necessitat d'explorar-la.
 
-    ![Graph](images/graph.png)
+* El curs del nostre algorisme és el següent:
+  1. Afegir la pàgina pare, juntament amb la distància a explorar, en la cua i inicialitzar un set buit que ens indicarà si hem visitat. 
 
-    The `server.py` module is already implemented, **do not modify it**.
+     - Complexitat: $O(1)$
 
--   The `answer.py` module is a command line interface tool that
-    developpers can use in order to get answers to their queries.
-    For instance, `./answer.py -q "the star"` will deliver the indexed web
-    pages that match the query:
+  2. Executar el **BFS** fins que no hi hagi elements a la cua, és a dir, fins que no haguem de visitar cap més link.
 
-    ```text
-    [{'score': 100,
-      'title': 'sample site',
-      'url': 'http://localhost:5000/static/index.html'},
-     {'score': 100,
-      'title': 'twinkle twinkle little star',
-      'url': 'http://localhost:5000/static/twinkle.html'}]
-    ```
+     - Complexitat: $O(V)$ , $V = links$ $no$ $visitats$  
 
-    Use `./answer.py --help` to get more options.
+       2.1. Agafem tota la sopa mitjançant funció auxiliar,getSoup(), i en cas d'error retorna un element buit.  
 
-    This module is already implemented, **do not modify it**.
+       - Complexitat: $O(t)$, $t = Text$
 
--   The `crawler.py` module is the command line interface tool that
-    is used to crawl the web and index its pages. In order to
-    execute it, use a command such as `./crawler.py --url http://localhost:5000/static/index.html`, which specifies its starting page.
-    Use `./crawler.py --help` to get more options.
+         2.2. Si hem pogut agafar la sopa, actualitzem la nostra data base. L'actualització es    divideix en: 
 
-    This module is already implemented, **do not modify it**.
+         ​2.2.1. Afegir en la `(db['pages']['url'])` les tres característiques pertanyen al link.
 
--   The `util.py` module contains several utility functions that are used
-    in the other modules.
+         ​2.2.2.  Escanejar el text, a través de la funció scrapeSite(), i anar afegint les paraules del text  
 
-    This module is already implemented, **do not modify it**.
+         ​	   en   `set(db['words']['word'])` i assignar un nou link.                 
 
--   Finally, the `moogle.py` module contains the core of the application
-    and is used by `server.py`, `answer.py` and `crawler.py`, which are
-    simple wrappers arround it.
-    **This is the only module you have to modify.**
+       | Afegir element diccionari | Afegir element set |     scrapeSite()     | Complexitat |
+       | :-----------------------: | :----------------: | :------------------: | :---------: |
+       |   Average Case: $O(1)$    |       $O(1)$       | Worst Case: $O(t·p)$ |  $O(t·p)$   |
+       |   Average Case: $O(1)$    |       $O(1)$       | Average Case: $O(t)$ |   $O(t)$    |
+       |    Worst Case: $O(n)$     |       $O(1)$       | Average Case: $O(t)$ |  $O(n+t)$   |
+       |    Worst Case: $O(n)$     |       $O(1)$       | Worst Case: $O(t·p)$ |  $O(t·p)$   |
 
+       $n =nombre$ $de$ $links$ $\wedge $  $p = paraules$ $sanejades$ $visitades$
 
-## System overview
+       2.3. Si la distància a explorar és més gran que 0, explorem els fills.
 
-The system works in two phases:
+       - Complexitat: $O(n)$
 
-1.  In the first phase, the crawler visits some web pages and saves some
-    information about them. This information is a Python object referred as the
-    _database_ and is referred as `db` all through the project. By default, the
-    database is saved in the `moogle.dat` file, but this file can be changed using
-    the `--database` flag of the`server.py`, `answer.py` and `crawler.py`
-    modules.
+       2.4.  Per cada fill afegim l'aresta entre el node del link pare i el node del fill en el graf. Si no l'hem visitat, és a dir, no es troba en el set de visit l'afegim a la cua. D'altre banda l'afegim a visit.
 
+       - Complexitat: $O(n)$
 
-2.  In the second phase, the web server loads the database and
-    processes queries from users. Alternatively, the queries can
-    be processed by the `answer.py` module, which is more useful in order to
-    debug.
 
+**Complexitat total** (Average Case) : $O(1)+O(V)+O(t)+O(n+t)+O(n))+O(n)=O(V+n+t)$
 
-## Your task
+Aquest anàlisis és una forma abstracta d'entendre que l'algorisme visita cada node i aresta tan sols un cop, i per cada node es llegeix la seva pàgina. 
 
-Your task is to implement the `moogle.py` module, so that all the project will
-work as expected. In order to do so, you may modify this module at will, but
-you have to implement a few functions with a given interface that is described
-below. The `moogle.py` module has three parts:
 
 
-### Common part
+### Page Rank
 
-This part is meant to define all the types and functions you need.
+El Page Rank és un algorisme utilitzat per ponderar pàgines webs en funció dels enllaços que l'apunten. És a dir, com més webs m'apunten més rellevància té la meva pàgina web. Aquest algorísme és el que permet a l'hora de realitzar queries tenir un ordre d'importànica envers les pàgines webs.  
 
-It also must define an `authors()` function that returns a string with the
-names or name of the authors of the assigment. This information is displayed
-in the home page. Simply modify this function to include *your* name(s)!
+Durant l'execucció del crawler es genera el graf dirigit que ens donarà aquesta relació  pare-fill. Un cop tenim tot el graf construit, del nostre crawling, podem aplicar el Page Rank. L'algorisme s'importa de la llibreria ```networkx``` , igual que la construcció del graf. Aquest algorisme converteix el graf en una matriu d'adjacència, on es divideix cada columna pel nombre d'elements en ella. Llavors, la  matriu esdevé Estocàstica per columnas. Aplicant el Teorema de Perron-Frobenius, s'obté que el VAP dominant és 1 i el seu VEP és l'únic amb totes les entrades positives. Calculant la distribució estable (dividir per la suma de les components del vector)  s'obté la distribució desitjada.
 
+Finalment, actualitzem la nostra base de dades en funció dels scores obtinguts en el Page Rank, és a dir, a cada web li assignem la seva rellevància.
 
-### Crawler part
 
-This part is meant to define all the types and functions you need in order to
-perform the crawling phase.
 
-It must define a function `crawler(url, maxdist)`
-that crawls the web starting from `url`, following up to `maxdist` links and
-returns a database (it is up to you to define the type and value
-of this database).
+### Execució
 
-This part already defines a `store(db, filename)` function that
-writes a database `db` in file `filename` using `pickle`.
+Per a realitzar crawling d'un web, cal executar:
 
+```python crawler.py -u [URL] -m [MAXDIST]``` , més informació sobre flags i opcions al fitxer ```crawler.py```
 
-### Answer part
+#### Exemples d'execució i resultats
 
-This part is meant to define all the types and functions you need in order to
-perform the answer phase.
 
-You should implement the `answer(db, query)` function, that, given a database
-and a query (that is, a string of cleaned words), returns a list of pages for
-the given query. In this list, each page is a map with three fields:
 
-- `title`: its title
-- `url`: its url
-- `score`: its score
+![upcedu](images/upcedu.png)
 
-The list must be sorted by score in descending order. The score of a page is
-a real number that describes how relevant is that page for that
-query. Higher scores imply more relevance and will be shown first.
-Scoring pages **is not** mandatory (it is an extra). You can simply return
-all the pages with the same score.
+<center>Crawling a http://upc.edu amb maxdist 1</center>
 
-The `answer.py` module just prettifies this result and outputs it.
 
-This part already defines a `load(filename)` function that
-reads a database stored in file `filename` using `pickle` and returns it.
 
 
 
+![labels](images/labels.png)
 
-## The utility module
 
-The `util.py` module contains two functions that will help you treating
-words in web pages.
 
-The `clean_word` function returns (in lowercase) the longest prefix of a word
-made of latin unicode characters. This function gives the opportunity to
-"normalize" words with latin letters. Here are some examples:
+<center>Crawling a http://foodsubs.com amb maxdist 1</center>
 
-```python
-clean_word("Jordi") -> "jordi"
-clean_word("Jordi!") -> "jordi"
-clean_word("LlorençGabarróNúñezÅrmstrong<>lala") -> "llorençgabarrónúñezårmstrong"
-clean_word("AlfaBetaAlefChinaαßℵ中xyz") -> "alfabetaalefchina"
-```
 
-The `clean_words` function works all the same, but applied to a string
-that can have many words. Here are some examples:
 
 
-```python
-clean_words("Jordi") -> "jordi"
-clean_words("Jordi Jordi!    Llorenç#Martí") -> "jordi jordi llorenç"
-```
 
+![figure_1](images/figure_1.png)
 
-# Usefull information
 
-The following code snippet reads a page through its url and prints its title,
-text and all its links. Error handling has been ommitted.
 
-```python
-import urllib.request
-from bs4 import BeautifulSoup
+<center>Crawling a http://foodsubs.com amb maxdist 2</center>
 
-url = "http://localhost:5000/static/index.html"
-response = urllib.request.urlopen(url)
-page = response.read()
-soup = BeautifulSoup(page, "html.parser")
-print(soup.title.string)
-print(soup.get_text())
-for link in soup.find_all("a"):
-    print(link.get("href"), link.string)
-```
 
-The following code snippet show how to save some data
-(whatever its type) into a file
-so that it can be retrieved latter:
 
-```python
-import pickle
+### Processament de la Query
 
-data = {1:2, 2:3}
-f = open("somefile.dat", "wb")
-pickle.dump(data, f)
-f.close()
-```
+Donada una *query*, que serà del tipus string, la funció ```answer(db, query)``` retornarà una llista de resultats que el mòdul ```server.py``` i posteriorment el sistema de *templating* de l'HTML processaran i mostraran a l'usuari que hagi realitzar la query.
 
-And this code shows how to retrieve it back:
+Donada la *query* en format string, el primer que fa la funció és crear una llista de paraules fent un ``split`` en els espais. Una vegada tenim la llista de paraules, és fa servir l'objecte ```db['words']``` per trobar el conjunt de pàgines on es troba cada paraula. Si no hi ha cap conjunt de pàgines per a una paraula en particular, afegim el conjunt buit a la llista.
 
-```python
-import pickle
+Després es calcula la **intersecció** d'aquests conjunts. Això permet trobar el un llistat de les pàgines que contenen **cada paraula** de la *query*. Amb aquest llistat, en generem un altre amb la informació pertinent de cada pàgina. Serà aquest llistat (ordenat per *pagerank scores*) el que retornarem a la interfície controladora.
 
-f = open("somefile.dat", "rb")
-data = pickle.load(f)
-f.close()
-```
 
-# Install dependencies
 
-In order to install the Python libraries you need, please run this command:
+## Dependències
+
+Llista de paquets necessaris per a executar ```moogle.py ```
 
 ```
-pip3 install -r requirements.txt
+networkx==2.1
+Flask==0.12.1
+stop_words==2015.2.23.1
+requests==2.6.0
+urllib3==1.21.1
+matplotlib==2.0.0
+PyPDF2==1.26.0
+beautifulsoup4==4.6.0
 ```
 
+Per instal·lar és tant senzill com executar la següent comanda: ```pip install -r requirements.txt```
 
-
-# Instruccions
-
-Podeu fer aquest projecte sols o en equips de dos. En cas de fer-lo en equip,
-la càrrega de treball dels dos membres de l'equip ha de ser semblant i el
-resultat final és responsabilitat d'ambdós. Cada membre de l'equip ha de saber
-què ha fet l'altre membre.
-
-
-
-
-## Lliurament
-
-Heu de lliurar la vostra pràctica per correu electrònic al professor Jordi
-Petit des del vostre compte oficial. El missatge ha de tenir el Tema
-(*Subject*) `Lliurament moogle` i ha de contenir un arxiu ZIP amb tots els
-fitxers per fer funcionar la pràctica. El ZIP ha d'incloure un fitxer
-`README.md` amb tota la vostra documentació  (disseny, extres, instruccions,
-exemples...) en format
-[Markdown](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet).
-
-El termini de lliurament és fins al dilluns 11 de juny a les 8 del matí
-(2018-06-11 08:00 CEST).
-
-
-## Consells
-
-- Si voleu fer parts addicionals extres per pujar la nota ho podeu fer,
-però us recomanem de parlar-les abans amb els vostres professors.
-
-- Segurament no us cal definir classes pròpies. Amb
-tuples, llistes, diccionaris i conjunts n'hauríeu de tenir prou.
-
-- Si voleu fer servir algun mòdul "exòtic", consulteu-ho abans amb els
-vostres professors.
-
+o en cas de necessitar permisos d'administrador o root: ```sudo pip install -r requirements.txt ```

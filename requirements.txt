@@ -1,8 +1,7 @@
 networkx==2.1
 Flask==0.12.1
-stop_words==2015.2.23.1
 requests==2.6.0
-urllib3==1.21.1
 matplotlib==2.0.0
-PyPDF2==1.26.0
+urllib3==1.21.1
+stop_words==2015.2.23.1
 beautifulsoup4==4.6.0
