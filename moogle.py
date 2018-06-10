@@ -244,7 +244,7 @@ def answer(db, query):
 
     web_results = []
     for url in result_set:
-        web_results.append(db["pages"][url])
+        web_results.append(db["pages"][url])                            # Fill list to be returned. 
 
     web_results.sort(key=operator.itemgetter('score'), reverse=True)
 

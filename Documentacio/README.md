@@ -146,3 +146,31 @@ Per a realitzar crawling d'un web, cal executar:
 
 #### Exemples d'execució i resultats
 
+
+
+![upcedu](upcedu.png)
+
+<center>Crawling a http://upc.edu amb maxdist 1</center>
+
+
+
+
+
+![labels](labels.png)
+
+
+
+<center>Crawling a http://foodsubs.com amb maxdist 1</center>
+
+
+
+
+
+![figure_1](figure_1.png)
+
+
+
+<center>Crawling a http://foodsubs.com amb maxdist 2</center>
+
+
+
