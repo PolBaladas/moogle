@@ -91,35 +91,10 @@ def sanitizeUrl(url):
     return urljoin(BASE, url).strip('/')
 
 
-def writePDF(file_name, binary):
-    with open(file_name, "wb") as file:
-        file.write(binary)
-
-
-def getPDFText(url, binary):
-    writePDF(url, filename)
-    file = open(url,'rb')
-    pdf = PyPDF2.PdfFileReader(file)
-    text = ''
-    for page in pdf:
-        text += page.extractText()
-    print(text)
-    return text
-
-
 def getSoup(url):
     try:
-        text = ''
-        r = requests.get(url, verify=False, timeout=0.5)
-        content_type = r.headers.get('content-type')
-        print(content_type)
-        if "application/pdf" == content_type:
-            text = getPDFText(url, r.content)
-        else:
-            text = r.text
-
-        return BeautifulSoup(text, 'lxml')
-    
+        response = requests.get(url, verify=False, timeout=0.5)
+        return BeautifulSoup(response.text, 'lxml')
     except:
         print("Error: Bad Content, skipping link. Do not stop.")
         return None
@@ -154,7 +129,7 @@ def getLinks(soup):
 def addSite(soup, url):
     return {
         'url': url,
-        'title': soup.title.string if soup.title else 'no title',
+        'title': soup.title.string if soup.title else 'No title',
         'score': 0
     }
 
