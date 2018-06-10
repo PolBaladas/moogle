@@ -137,7 +137,7 @@ def addSite(soup, url):
 
 def BFS_crawler(url, expdist, db, G):
     links_queue = deque()
-    links_queue.appendleft([expdist, url])
+    links_queue.appendleft([expdist, url])                          # Queue policies FIFO
     visit = set()
     while len(links_queue):
         dist, url = links_queue.pop()
@@ -166,7 +166,7 @@ def plotGraph(G):
 def pageRank(G, db):                                                
     pr = pagerank(G)
     for element in pr.keys():
-        score = math.ceil(pr[element] * 10000)                      # Ceil the PageRank score for    
+        score = math.ceil(pr[element] * 10000)                      # Ceil the PageRank score for design p
         db['pages'][element]['score'] = score
 
 
@@ -237,16 +237,16 @@ def answer(db, query):
         if query in words:
             results.append(words[query])
         else:
-            results.append(set())
+            results.append(set())                                   # We add an empty set for the intersection to work as desired.
 
     if not len(results):
         return results
 
-    result_set = results[0].intersection(*results)                      # Calculates the intersection of result sets (queries).
+    result_set = results[0].intersection(*results)                  # Calculates the intersection of result sets (queries).
 
     web_results = []
     for url in result_set:
-        web_results.append(db["pages"][url])                            # Fill list to be returned. 
+        web_results.append(db["pages"][url])                        # Fill list to be returned. 
 
     web_results.sort(key=operator.itemgetter('score'), reverse=True)
 

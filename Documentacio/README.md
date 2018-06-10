@@ -36,7 +36,7 @@
   ```
 
 
-* **Cua**: Per poder implementar l'algorisme BFS necessitem una cua on anar guardant les url sota la política LIFO. En el nostre cas implementem una cua on cada entrada és una llista de dos elements,(link, distància a explorar). S'utilitza la llibreria deque per implementar la cua, atès a l'eficiència de la seva implementació.
+* **Cua**: Per poder implementar l'algorisme BFS necessitem una cua on anar guardant les url sota la política FIFO. En el nostre cas implementem una cua on cada entrada és una llista de dos elements,(link, distància a explorar). S'utilitza la llibreria deque per implementar la cua, atès a l'eficiència de la seva implementació.
 
   ``` python
   from collections import deque
@@ -68,6 +68,7 @@ Per descriure la complexitat algorísmica s'utilitzarà notació asimptòtica:
   | Afegir element en un diccionari (Average Case) |                                          |                           |
   |              sanitizeUrl()               |                                          |                           |
   |         Afegir aresta en el graf         |                                          |                           |
+
 
 
 ### Algorisme
@@ -115,30 +116,21 @@ El crawler està basat en l'algorisme Breadth First Search (**BFS** ) . Aquest a
 
 **Complexitat total** (Average Case) : $O(1)+O(V)+O(t)+O(n+t)+O(n))+O(n)=O(V+n+t)$
 
+Aquest anàlisis és una forma abstracta d'entendre que l'algorisme visita cada node i aresta tan sols un cop, i per cada node es llegeix la seva pàgina. 
 
 
-###  Dependències
 
-Llista de paquets necessaris per a executar ```moogle.py ```
+### Page Rank
 
-```
-networkx==2.1
-Flask==0.12.1
-stop_words==2015.2.23.1
-requests==2.6.0
-urllib3==1.21.1
-matplotlib==2.0.0
-PyPDF2==1.26.0
-beautifulsoup4==4.6.0
-```
+El Page Rank és un algorisme utilitzat per ponderar pàgines webs en funció dels enllaços que l'apunten. És a dir, com més webs m'apunten més rellevància té la meva pàgina web. Aquest algorísme és el que permet a l'hora de realitzar queries tenir un ordre d'importànica envers les pàgines webs.  
 
-Per instal·lar és tant senzill com executar la següent comanda: ```pip install -r requirements.txt```
+Durant l'execucció del crawler es genera el graf dirigit que ens donarà aquesta relació  pare-fill. Un cop tenim tot el graf construit, del nostre crawling, podem aplicar el Page Rank. L'algorisme s'importa de la llibreria ```networkx``` , igual que la construcció del graf. Aquest algorisme converteix el graf en una matriu d'adjacència, on es divideix cada columna pel nombre d'elements en ella. Llavors, la  matriu esdevé Estocàstica per columnas. Aplicant el Teorema de Perron-Frobenius, s'obté que el VAP dominant és 1 i el seu VEP és l'únic amb totes les entrades positives. Calculant la distribució estable (dividir per la suma de les components del vector)  s'obté la distribució desitjada.
 
-o en cas de necessitar permisos d'administrador o root: ```sudo pip install -r requirements.txt ```
+Finalment, actualitzem la nostra base de dades en funció dels scores obtinguts en el Page Rank, és a dir, a cada web li assignem la seva rellevància.
 
-###  Execució
 
-#### Execució del Crawler
+
+### Execució
 
 Per a realitzar crawling d'un web, cal executar:
 
@@ -174,3 +166,31 @@ Per a realitzar crawling d'un web, cal executar:
 
 
 
+### Processament de la Query
+
+Donada una *query*, que serà del tipus string, la funció ```answer(db, query)``` retornarà una llista de resultats que el mòdul ```server.py``` i posteriorment el sistema de *templating* de l'HTML processaran i mostraran a l'usuari que hagi realitzar la query.
+
+Donada la *query* en format string, el primer que fa la funció és crear una llista de paraules fent un ``split`` en els espais. Una vegada tenim la llista de paraules, és fa servir l'objecte ```db['words']``` per trobar el conjunt de pàgines on es troba cada paraula. Si no hi ha cap conjunt de pàgines per a una paraula en particular, afegim el conjunt buit a la llista.
+
+Després es calcula la **intersecció** d'aquests conjunts. Això permet trobar el un llistat de les pàgines que contenen **cada paraula** de la *query*. Amb aquest llistat, en generem un altre amb la informació pertinent de cada pàgina. Serà aquest llistat (ordenat per *pagerank scores*) el que retornarem a la interfície controladora.
+
+
+
+## Dependències
+
+Llista de paquets necessaris per a executar ```moogle.py ```
+
+```
+networkx==2.1
+Flask==0.12.1
+stop_words==2015.2.23.1
+requests==2.6.0
+urllib3==1.21.1
+matplotlib==2.0.0
+PyPDF2==1.26.0
+beautifulsoup4==4.6.0
+```
+
+Per instal·lar és tant senzill com executar la següent comanda: ```pip install -r requirements.txt```
+
+o en cas de necessitar permisos d'administrador o root: ```sudo pip install -r requirements.txt ```
