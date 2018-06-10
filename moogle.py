@@ -17,8 +17,6 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
-sys.setrecursionlimit(50000) # Uncomment if your system needs this.
-
 STOP_WORDS = set(get_stop_words('en') +
                  get_stop_words('ca') + get_stop_words('es'))
 
@@ -26,6 +24,9 @@ STOP_WORDS = set(get_stop_words('en') +
 DOMAIN = ''
 BASE = ''
 
+PLOT = False                    # switch to True if you want the crawler to plot the directed graph. 
+
+sys.setrecursionlimit(50000)    # Uncomment if your system needs this.
 
 
 #############################################################################
@@ -94,7 +95,7 @@ def sanitizeUrl(url):
 def getSoup(url):                                                   # Try/Catch block to prevent Bad Content being processed.
     try:
         response = requests.get(url, verify=False, timeout=0.5)     # As an alternative design option, one could check for the content type of the response. 
-        return BeautifulSoup(response.text, 'lxml')                 # e.g: this would only work if the content type was 'text/html'.
+        return BeautifulSoup(response.text)                         # e.g: this would only work if the content type was 'text/html'.
     except:
         print("Error: Bad Content, skipping link. Do not stop.")
         return None                                                 # Return None if the URL could not be processed. The Crawler will understand.
@@ -194,8 +195,9 @@ def crawler(url, maxdist):
     print("Computing PageRank...")
     pageRank(G, db)
 
-    print("Plotting BFS...")
-    plotGraph(G)
+    if PLOT:
+        print("Plotting BFS...")
+        plotGraph(G)
 
     return db
 
