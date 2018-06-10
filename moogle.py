@@ -142,7 +142,7 @@ def BFS_crawler(url, expdist, db, G):
         dist, url = links_queue.pop()
         soup = getSoup(url)
         if soup:
-            db['pages'][url] = addSite(soup, url)
+            db['pages'][url] = addSite(soup, url)                   # Add site to database
             scrapeSite(soup, url, db)
             if dist > 0:
                 links = getLinks(soup)
