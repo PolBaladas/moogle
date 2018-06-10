@@ -166,7 +166,7 @@ Per a realitzar crawling d'un web, cal executar:
 
 
 
-### Processament de la Query
+## Processament de la Query
 
 Donada una *query*, que serà del tipus string, la funció ```answer(db, query)``` retornarà una llista de resultats que el mòdul ```server.py``` i posteriorment el sistema de *templating* de l'HTML processaran i mostraran a l'usuari que hagi realitzar la query.
 
