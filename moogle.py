@@ -1,32 +1,32 @@
-import pickle
-import requests
-import urllib3
 import sys
 import util
+import math
+import pickle
+import urllib3
+import requests
 import operator
-
-from urllib.parse import urljoin, urlparse, urldefrag
-from bs4 import BeautifulSoup
-import networkx as nx
-from networkx import DiGraph, pagerank
 import pylab as plt
+import networkx as nx
+
+from bs4 import BeautifulSoup
 from collections import deque
-
-import PyPDF2
-
 from stop_words import get_stop_words
-
+from networkx import DiGraph, pagerank
+from urllib.parse import urljoin, urlparse, urldefrag
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
-sys.setrecursionlimit(50000)
+sys.setrecursionlimit(50000) # Uncomment if your system needs this.
 
 STOP_WORDS = set(get_stop_words('en') +
                  get_stop_words('ca') + get_stop_words('es'))
 
+
 DOMAIN = ''
 BASE = ''
+
+
 
 #############################################################################
 # Common part
@@ -61,21 +61,21 @@ def sanitizeText(text):
     return [word for word in text if word not in STOP_WORDS]
 
 
-def isVisible(element):
+def isVisible(element):                                             # Boolean Function that will be used to filter visible text.
     return element.parent.name not in [
-        'style', 'script', 'head', 'title', '[document]'
+        'style', 'script', 'head', '[document]'
     ]
 
 
 def filterVisibleText(text):
-    visible = filter(isVisible, text)
-    return u" ".join(t.strip() for t in visible)
+    visible = filter(isVisible, text)                               # Pass isVisible filter through text.
+    return u" ".join(t.strip() for t in visible)                    # Join results in string.
 
 
 def getText(soup):
     text = filterVisibleText(soup.findAll(text=True))
     text = sanitizeText(text)
-    return set(text)
+    return set(text)                                                # Repeated instances are removed.
 
 
 def scrapeSite(soup, url, db):
@@ -88,29 +88,29 @@ def scrapeSite(soup, url, db):
 
 
 def sanitizeUrl(url):
-    return urljoin(BASE, url).strip('/')
+    return urljoin(BASE, url).strip('/') 
 
 
-def getSoup(url):
+def getSoup(url):                                                   # Try/Catch block to prevent Bad Content being processed.
     try:
-        response = requests.get(url, verify=False, timeout=0.5)
-        return BeautifulSoup(response.text, 'lxml')
+        response = requests.get(url, verify=False, timeout=0.5)     # As an alternative design option, one could check for the content type of the response. 
+        return BeautifulSoup(response.text, 'lxml')                 # e.g: this would only work if the content type was 'text/html'.
     except:
         print("Error: Bad Content, skipping link. Do not stop.")
-        return None
+        return None                                                 # Return None if the URL could not be processed. The Crawler will understand.
 
 
 def getDomain(url):
-    return urlparse(url).netloc
+    return urlparse(url).netloc                                     # netloc --> Network Location means domain.
 
 
 def isFromDomain(url):
     domain = getDomain(url)
-    return (url[0:4] != 'http') or (domain == DOMAIN)
+    return (url[0:4] != 'http') or (domain == DOMAIN)               # Check (1) absolute/relative paths and  (2) domain procedence.
 
 
-def isValidUrl(url):
-    return (
+def isValidUrl(url):                                                # Boolean function that will be used to filter valid URLs.
+    return (                                                        # If the conditions need to be changed, modify this function.
         "mailto:" not in url['href'] and
         '#' not in url['href'] and
         isFromDomain(url['href'])
@@ -119,9 +119,9 @@ def isValidUrl(url):
 
 def getLinks(soup):
     results = []
-    links = filter(isValidUrl, soup.find_all('a', href=True))
+    links = filter(isValidUrl, soup.find_all('a', href=True))       # Pass isValidURL filter through 'a' tags.
     for link in list(links):
-        url = sanitizeUrl(link['href'])
+        url = sanitizeUrl(link['href'])                             # Sanitize the URL format-wise.
         results.append(url)
     return results
 
@@ -129,7 +129,7 @@ def getLinks(soup):
 def addSite(soup, url):
     return {
         'url': url,
-        'title': soup.title.string if soup.title else 'No title',
+        'title': soup.title.string if soup.title else 'No title',   # Strangely enough, some websites have no title tag or it is found to be empty.
         'score': 0
     }
 
@@ -162,10 +162,11 @@ def plotGraph(G):
     plt.show()
 
 
-def pageRank(G, db):
+def pageRank(G, db):                                                
     pr = pagerank(G)
     for element in pr.keys():
-        db['pages'][element]['score'] = pr[element] * 10000
+        score = math.ceil(pr[element] * 10000)                      # Ceil the PageRank score for    
+        db['pages'][element]['score'] = score
 
 
 def crawler(url, maxdist):
@@ -225,7 +226,6 @@ def answer(db, query):
         The list is sorted by score in descending order.
         The query is a string of cleaned words.
     """
-
     words = db["words"]
     pages = db["pages"]
     queries = query.split(' ')
@@ -240,8 +240,7 @@ def answer(db, query):
     if not len(results):
         return results
 
-    result_set = results[0].intersection(*results)
-    print(result_set)
+    result_set = results[0].intersection(*results)                      # Calculates the intersection of result sets (queries).
 
     web_results = []
     for url in result_set:
